@@ -62,7 +62,7 @@ async function loadData() {
       return;
     }
 
-    const response = await fetch('bukhari.json');
+    const response = await fetch('https://www.dropbox.com/scl/fi/3l3ncqenbh10wmjwbwx4v/bukhari.json?rlkey=6py18tsmw131rx7wlr7sm5dbn&st=7b89j388&dl=1');
     if (!response.ok) throw new Error('فشل تحميل البيانات');
 
     const total = parseInt(response.headers.get('Content-Length') || '0');
