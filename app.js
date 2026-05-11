@@ -1,18 +1,17 @@
 // =============================================
-//  app.js — Main Index Page (API Version)
-//  غيّر الرابط التالي برابطك الدائم بعد النشر
+//  app.js — API خارجي دائم (بدون Replit)
+//  المصدر: api.hadith.gading.dev
 // =============================================
 
-const API_BASE = 'https://c5d637d5-8680-45ac-b682-a9b2c3da8ad6-00-2q47k992tfojx.picard.replit.dev/api/bukhari';
-
+const API_BASE = 'https://api.hadith.gading.dev/books/bukhari';
 const PER_PAGE = 50;
+const TOTAL = 6638;
+
 let currentPage = 1;
 let currentView = localStorage.getItem('view') || 'grid';
-let currentFilter = 'all';
 let searchQuery = '';
 let searchTimeout = null;
 let isLoading = false;
-let totalPages = 1;
 
 // ---- Theme ----
 (function initTheme() {
@@ -29,17 +28,7 @@ document.getElementById('theme-toggle').addEventListener('click', () => {
   document.getElementById('theme-toggle').textContent = next === 'dark' ? '☀️' : '🌙';
 });
 
-// ---- Build API URL ----
-function buildUrl(page, query, filter) {
-  if (query) {
-    return `${API_BASE}/search?q=${encodeURIComponent(query)}&page=${page}&limit=${PER_PAGE}`;
-  }
-  let url = `${API_BASE}?page=${page}&limit=${PER_PAGE}`;
-  if (filter === 'desc') url += '&hasDesc=true';
-  return url;
-}
-
-// ---- Load from API ----
+// ---- Load page from external API ----
 async function loadPage() {
   if (isLoading) return;
   isLoading = true;
@@ -50,18 +39,22 @@ async function loadPage() {
     <div>جارٍ التحميل...</div>
   </div>`;
 
+  const start = (currentPage - 1) * PER_PAGE + 1;
+  const end = Math.min(currentPage * PER_PAGE, TOTAL);
+
   try {
-    const url = buildUrl(currentPage, searchQuery, currentFilter);
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('فشل الاتصال بالخادم');
+    const res = await fetch(`${API_BASE}?range=${start}-${end}`);
+    if (!res.ok) throw new Error('فشل الاتصال');
     const json = await res.json();
 
-    totalPages = json.totalPages || 1;
-    document.getElementById('showing-count').textContent = json.total.toLocaleString('ar-EG');
-    document.getElementById('total-count').textContent = (7008).toLocaleString('ar-EG');
+    const hadiths = json.data?.hadiths || [];
+    const totalPages = Math.ceil(TOTAL / PER_PAGE);
 
-    renderCards(json.data);
-    renderPagination(json.totalPages, json.page);
+    document.getElementById('showing-count').textContent = TOTAL.toLocaleString('ar-EG');
+    document.getElementById('total-count').textContent = TOTAL.toLocaleString('ar-EG');
+
+    renderCards(hadiths);
+    renderPagination(totalPages, currentPage);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
   } catch (err) {
@@ -76,48 +69,77 @@ async function loadPage() {
   }
 }
 
+// ---- Search by number ----
+async function searchByNumber(num) {
+  if (isLoading) return;
+  isLoading = true;
+
+  const container = document.getElementById('hadiths-container');
+  container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)"><div style="font-size:2rem">⏳</div><div>جارٍ البحث...</div></div>`;
+
+  try {
+    const res = await fetch(`${API_BASE}/${num}`);
+    if (!res.ok) throw new Error('الحديث غير موجود');
+    const json = await res.json();
+    const h = json.data?.contents;
+
+    if (!h) throw new Error('الحديث غير موجود');
+
+    document.getElementById('showing-count').textContent = '١';
+    renderCards([h]);
+    document.getElementById('pagination').innerHTML =
+      `<button class="page-btn" onclick="clearSearch()">↩ عرض الكل</button>`;
+
+  } catch (err) {
+    container.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">🔍</div>
+      <h3>لا توجد نتائج</h3>
+      <p>${err.message}</p>
+    </div>`;
+    document.getElementById('pagination').innerHTML =
+      `<button class="page-btn" onclick="clearSearch()">↩ عرض الكل</button>`;
+  } finally {
+    isLoading = false;
+  }
+}
+
+function clearSearch() {
+  searchQuery = '';
+  document.getElementById('main-search').value = '';
+  currentPage = 1;
+  updateURL();
+  loadPage();
+}
+
 // ---- Render Cards ----
 function renderCards(hadiths) {
   const container = document.getElementById('hadiths-container');
 
   if (!hadiths || hadiths.length === 0) {
     container.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
-      <div class="icon">🔍</div>
-      <h3>لا توجد نتائج</h3>
-      <p>جرّب كلمات بحث مختلفة</p>
+      <div class="icon">🔍</div><h3>لا توجد نتائج</h3>
     </div>`;
-    document.getElementById('pagination').innerHTML = '';
     return;
   }
 
-  const q = searchQuery ? normalizeAr(searchQuery) : '';
-  container.innerHTML = hadiths.map(h => createCard(h, q)).join('');
+  container.innerHTML = hadiths.map(h => createCard(h)).join('');
 }
 
-function createCard(h, q) {
-  const text = h.searchTerm || h.hadith || '';
+function createCard(h) {
+  const text = h.arab || '';
   const preview = text.length > 220 ? text.slice(0, 220) + '...' : text;
-  const highlighted = q ? highlight(preview, q) : escapeHtml(preview);
-  const hasDesc = h.description && h.description.trim();
 
   return `<a href="hadith.html?id=${h.number}" class="hadith-card">
     <div class="card-header">
       <div class="card-number">${h.number}</div>
-      <div class="card-title">حديث رقم ${h.number.toLocaleString('ar-EG')}</div>
+      <div class="card-title">حديث رقم ${Number(h.number).toLocaleString('ar-EG')}</div>
     </div>
-    <div class="card-text">${highlighted}</div>
+    <div class="card-text">${escapeHtml(preview)}</div>
     <div class="card-footer">
-      ${hasDesc ? '<span class="has-desc">📖 مع الشرح</span>' : '<span></span>'}
+      <span></span>
       <span class="card-arrow">←</span>
     </div>
   </a>`;
-}
-
-function highlight(text, q) {
-  if (!q) return escapeHtml(text);
-  const escaped = escapeHtml(text);
-  const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return escaped.replace(new RegExp(escapedQ, 'gi'), m => `<mark>${m}</mark>`);
 }
 
 function escapeHtml(s) {
@@ -129,39 +151,44 @@ document.getElementById('main-search').addEventListener('input', e => {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
     searchQuery = e.target.value.trim();
-    currentPage = 1;
-    loadPage();
+    const num = parseInt(searchQuery);
+    if (searchQuery === '') {
+      currentPage = 1;
+      loadPage();
+    } else if (!isNaN(num) && num >= 1 && num <= TOTAL) {
+      searchByNumber(num);
+    } else {
+      document.getElementById('hadiths-container').innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+        <div class="icon">🔢</div>
+        <h3>ادخل رقم الحديث للبحث</h3>
+        <p>مثال: 1، 100، 500</p>
+        <p style="margin-top:8px;font-size:.85rem;color:var(--text-muted)">البحث النصي غير متاح في الوضع الحالي</p>
+      </div>`;
+      document.getElementById('pagination').innerHTML = `<button class="page-btn" onclick="clearSearch()">↩ عرض الكل</button>`;
+    }
     updateURL();
   }, 400);
 });
 
 document.getElementById('main-search').addEventListener('keydown', e => {
   if (e.key === 'Enter') {
-    clearTimeout(searchTimeout);
-    searchQuery = e.target.value.trim();
-    currentPage = 1;
-    loadPage();
-    updateURL();
+    const num = parseInt(e.target.value.trim());
+    if (!isNaN(num) && num >= 1 && num <= TOTAL) {
+      window.location.href = `hadith.html?id=${num}`;
+    }
   }
 });
 
-// ---- Filters ----
+// ---- Filters (مع الشرح غير متاح في الـ API الخارجي) ----
 function setFilter(f) {
-  currentFilter = f;
+  if (f === 'desc') {
+    alert('فلتر الشرح غير متاح في الوضع الحالي');
+    return;
+  }
   currentPage = 1;
-  document.getElementById('filter-all').classList.toggle('active', f === 'all');
-  document.getElementById('filter-desc').classList.toggle('active', f === 'desc');
+  document.getElementById('filter-all').classList.add('active');
+  document.getElementById('filter-desc').classList.remove('active');
   loadPage();
-}
-
-function normalizeAr(s) {
-  return s
-    .replace(/[\u064B-\u065F\u0670]/g, '')
-    .replace(/أ|إ|آ/g, 'ا')
-    .replace(/ة/g, 'ه')
-    .replace(/ى/g, 'ي')
-    .toLowerCase()
-    .trim();
 }
 
 // ---- View ----
@@ -179,9 +206,7 @@ function renderPagination(total, current) {
   if (total <= 1) { document.getElementById('pagination').innerHTML = ''; return; }
 
   const pages = getPageRange(current, total);
-  let html = '';
-
-  html += `<button class="page-btn" onclick="goPage(${current - 1})" ${current === 1 ? 'disabled' : ''}>→</button>`;
+  let html = `<button class="page-btn" onclick="goPage(${current - 1})" ${current === 1 ? 'disabled' : ''}>→</button>`;
 
   for (const p of pages) {
     if (p === '...') {
@@ -192,14 +217,12 @@ function renderPagination(total, current) {
   }
 
   html += `<button class="page-btn" onclick="goPage(${current + 1})" ${current === total ? 'disabled' : ''}>←</button>`;
-
   document.getElementById('pagination').innerHTML = html;
 }
 
 function getPageRange(cur, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const range = [];
-  range.push(1);
+  const range = [1];
   if (cur > 3) range.push('...');
   for (let i = Math.max(2, cur - 1); i <= Math.min(total - 1, cur + 1); i++) range.push(i);
   if (cur < total - 2) range.push('...');
@@ -208,7 +231,8 @@ function getPageRange(cur, total) {
 }
 
 function goPage(p) {
-  if (p < 1 || p > totalPages) return;
+  const total = Math.ceil(TOTAL / PER_PAGE);
+  if (p < 1 || p > total) return;
   currentPage = p;
   loadPage();
   updateURL();
@@ -234,26 +258,20 @@ window.addEventListener('scroll', () => {
 // ---- Init ----
 (function init() {
   setView(currentView, true);
+  document.getElementById('filter-all').classList.add('active');
 
   const params = new URLSearchParams(location.search);
-  if (params.get('q')) {
-    searchQuery = params.get('q');
-    document.getElementById('main-search').value = searchQuery;
-  }
-  if (params.get('page')) {
-    currentPage = parseInt(params.get('page')) || 1;
-  }
+  if (params.get('page')) currentPage = parseInt(params.get('page')) || 1;
 
-  // Hide loading screen
+  // Hide loading screen fast
   const bar = document.getElementById('loader-bar');
   const txt = document.getElementById('loader-text');
   bar.style.width = '100%';
   txt.textContent = 'جاهز ✓';
   setTimeout(() => {
     const ls = document.getElementById('loading-screen');
-    ls.classList.add('hidden');
-    setTimeout(() => ls.remove(), 500);
-  }, 300);
+    if (ls) { ls.classList.add('hidden'); setTimeout(() => ls.remove(), 500); }
+  }, 200);
 
   loadPage();
 })();
