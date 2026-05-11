@@ -100,7 +100,7 @@ function createCard(h, q) {
   const highlighted = q ? highlight(preview, q) : escapeHtml(preview);
   const hasDesc = h.description && h.description.trim();
 
-  return `<a href="hadith?id=${h.number}" class="hadith-card">
+  return `<a href="hadith.html?id=${h.number}" class="hadith-card">
     <div class="card-header">
       <div class="card-number">${h.number}</div>
       <div class="card-title">حديث رقم ${h.number.toLocaleString('ar-EG')}</div>
