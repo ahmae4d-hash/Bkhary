@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="صحيح البخاري — مجموعة كاملة من أحاديث الإمام البخاري مع الشرح والتعليق">
+  <meta name="keywords" content="صحيح البخاري, أحاديث نبوية, البخاري, حديث شريف">
+  <meta property="og:title" content="صحيح البخاري">
+  <meta property="og:description" content="مجموعة كاملة من أحاديث الإمام البخاري مع الشرح والتعليق">
+  <title>صحيح البخاري</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📿</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div id="loading-screen">
+  <div class="loader-ornament">📿</div>
+  <div class="loader-title">صحيح البخاري</div>
+  <div class="loader-progress"><div class="loader-bar" id="loader-bar"></div></div>
+  <div class="loader-text" id="loader-text">جارٍ تحميل الأحاديث...</div>
+</div>
+
+<!-- Top Progress Bar -->
+<div id="top-progress"></div>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index" class="logo">
+      <div class="logo-icon">📿</div>
+      <div>
+        <div class="logo-text">صحيح البخاري</div>
+        <div class="logo-sub">الإمام محمد بن إسماعيل البخاري</div>
+      </div>
+    </a>
+    <div class="header-search">
+      <input type="search" id="main-search" placeholder="ابحث في الأحاديث..." autocomplete="off">
+      <span class="search-icon">🔍</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" id="theme-toggle" title="تبديل المظهر">🌙</button>
+    </div>
+  </div>
+</header>
+
+<!-- Hero -->
+<div class="hero" id="hero-section">
+  <div class="hero-title">الجامع الصحيح</div>
+  <div class="hero-sub">أصح كتاب بعد كتاب الله العزيز</div>
+  <div class="hero-stats">
+    <span class="stat-badge">📚 <strong id="total-count">٧٠٠٨</strong> حديث</span>
+    <span class="stat-badge">✍️ الإمام البخاري</span>
+    <span class="stat-badge">🗓️ ت. ٢٥٦ هـ</span>
+  </div>
+</div>
+
+<!-- Main Content -->
+<main class="container">
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <span class="results-count">عرض <strong id="showing-count">٠</strong> حديث</span>
+      <button class="btn" id="filter-all" onclick="setFilter('all')">الكل</button>
+      <button class="btn" id="filter-desc" onclick="setFilter('desc')">📖 مع الشرح</button>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn active" id="view-grid-btn" onclick="setView('grid')" title="عرض شبكي">⊞</button>
+      <button class="btn" id="view-list-btn" onclick="setView('list')" title="عرض قائمة">☰</button>
+    </div>
+  </div>
+
+  <!-- Hadiths Container -->
+  <div id="hadiths-container" class="view-grid"></div>
+
+  <!-- Pagination -->
+  <div class="pagination" id="pagination"></div>
+
+</main>
+
+<!-- Back to Top -->
+<button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- Footer -->
+<footer>
+  <p>صحيح البخاري — <strong>الإمام أبو عبدالله محمد بن إسماعيل البخاري</strong></p>
+  <p style="margin-top:6px;font-size:.8rem;">٧٠٠٨ حديث شريف • مع الشرح والتعليق</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

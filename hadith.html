@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="حديث من صحيح البخاري مع الشرح والتعليق">
+  <title>صحيح البخاري — حديث</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📿</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div id="loading-screen">
+  <div class="loader-ornament">📿</div>
+  <div class="loader-title">صحيح البخاري</div>
+  <div class="loader-progress"><div class="loader-bar" id="loader-bar"></div></div>
+  <div class="loader-text" id="loader-text">جارٍ تحميل الحديث...</div>
+</div>
+
+<!-- Top Progress Bar -->
+<div id="top-progress"></div>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index" class="logo">
+      <div class="logo-icon">📿</div>
+      <div>
+        <div class="logo-text">صحيح البخاري</div>
+        <div class="logo-sub">الإمام محمد بن إسماعيل البخاري</div>
+      </div>
+    </a>
+    <div class="header-search">
+      <input type="search" id="main-search" placeholder="ابحث في الأحاديث..." autocomplete="off">
+      <span class="search-icon">🔍</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" id="theme-toggle" title="تبديل المظهر">🌙</button>
+      <button class="btn-icon" id="share-btn" title="مشاركة">🔗</button>
+    </div>
+  </div>
+</header>
+
+<!-- Main Content -->
+<main>
+  <div class="hadith-page" id="hadith-page-content" style="display:none">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+      <a href="index">🏠 الرئيسية</a>
+      <span>›</span>
+      <span id="breadcrumb-num">...</span>
+    </nav>
+
+    <!-- Navigation -->
+    <div class="hadith-nav">
+      <a href="#" class="nav-btn next" id="btn-next">
+        <span>التالي</span>
+        <span>→</span>
+      </a>
+      <div class="nav-center-info" id="nav-center">
+        <div id="hadith-position">...</div>
+      </div>
+      <a href="#" class="nav-btn prev" id="btn-prev">
+        <span>←</span>
+        <span>السابق</span>
+      </a>
+    </div>
+
+    <!-- Hadith Card -->
+    <div class="hadith-card-full" id="hadith-main">
+      <div class="hadith-num-badge">
+        📿 حديث رقم <span id="hadith-num-display">...</span>
+      </div>
+
+      <div class="divider-ornament">❧ ✦ ❧</div>
+
+      <div class="section-label">📜 نص الحديث</div>
+      <div class="hadith-text-full" id="hadith-text"></div>
+    </div>
+
+    <!-- Description Card -->
+    <div class="desc-card" id="desc-card" style="display:none">
+      <div class="section-label">📖 الشرح والتعليق</div>
+      <div class="desc-text" id="desc-text"></div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="hadith-nav" style="margin-top:8px">
+      <a href="#" class="nav-btn next" id="btn-next-2">
+        <span>التالي</span>
+        <span>→</span>
+      </a>
+      <div class="nav-center-info">
+        <a href="index" style="color:var(--green);text-decoration:none;font-size:.9rem">↩ العودة للقائمة</a>
+      </div>
+      <a href="#" class="nav-btn prev" id="btn-prev-2">
+        <span>←</span>
+        <span>السابق</span>
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Error State -->
+  <div class="container" id="error-state" style="display:none">
+    <div class="empty-state">
+      <div class="icon">❗</div>
+      <h3>الحديث غير موجود</h3>
+      <p>لم يتم العثور على الحديث المطلوب</p>
+      <br>
+      <a href="index" class="btn active">العودة للرئيسية</a>
+    </div>
+  </div>
+</main>
+
+<!-- Back to Top -->
+<button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- Footer -->
+<footer>
+  <p>صحيح البخاري — <strong>الإمام أبو عبدالله محمد بن إسماعيل البخاري</strong></p>
+  <p style="margin-top:6px;font-size:.8rem;">٧٠٠٨ حديث شريف • مع الشرح والتعليق</p>
+</footer>
+
+<script src="hadith.js"></script>
+</body>
+</html>
