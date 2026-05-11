@@ -1,10 +1,10 @@
 // =============================================
-//  hadith.js — Individual Hadith Page (API Version)
-//  غيّر الرابط التالي برابطك الدائم بعد النشر
+//  hadith.js — API خارجي دائم (بدون Replit)
+//  المصدر: api.hadith.gading.dev
 // =============================================
 
-const API_BASE = 'https://c5d637d5-8680-45ac-b682-a9b2c3da8ad6-00-2q47k992tfojx.picard.replit.dev/api/bukhari';
-const TOTAL_HADITHS = 7008;
+const API_BASE = 'https://api.hadith.gading.dev/books/bukhari';
+const TOTAL_HADITHS = 6638;
 
 let currentId = 1;
 
@@ -27,9 +27,7 @@ document.getElementById('theme-toggle').addEventListener('click', () => {
 document.getElementById('share-btn').addEventListener('click', async () => {
   const url = location.href;
   if (navigator.share) {
-    try {
-      await navigator.share({ title: `صحيح البخاري — حديث رقم ${currentId}`, url });
-    } catch (_) {}
+    try { await navigator.share({ title: `صحيح البخاري — حديث رقم ${currentId}`, url }); } catch (_) {}
   } else {
     await navigator.clipboard.writeText(url);
     const btn = document.getElementById('share-btn');
@@ -46,16 +44,15 @@ document.getElementById('main-search').addEventListener('keydown', e => {
   }
 });
 
-// ---- Load Hadith from API ----
+// ---- Load Hadith ----
 async function loadData() {
   const bar = document.getElementById('loader-bar');
   const txt = document.getElementById('loader-text');
 
   const params = new URLSearchParams(location.search);
-  const idParam = params.get('id');
-  currentId = parseInt(idParam) || 1;
+  currentId = parseInt(params.get('id')) || 1;
 
-  if (isNaN(currentId) || currentId < 1) {
+  if (isNaN(currentId) || currentId < 1 || currentId > TOTAL_HADITHS) {
     showError();
     return;
   }
@@ -65,22 +62,19 @@ async function loadData() {
     txt.textContent = 'جارٍ تحميل الحديث...';
 
     const res = await fetch(`${API_BASE}/${currentId}`);
-
-    if (res.status === 404) {
-      showError();
-      return;
-    }
+    if (res.status === 404) { showError(); return; }
     if (!res.ok) throw new Error('فشل الاتصال بالخادم');
 
-    const hadith = await res.json();
+    const json = await res.json();
+    const hadith = json.data?.contents;
+    if (!hadith) { showError(); return; }
 
     bar.style.width = '100%';
     txt.textContent = 'تم ✓';
 
     setTimeout(() => {
       const ls = document.getElementById('loading-screen');
-      ls.classList.add('hidden');
-      setTimeout(() => ls.remove(), 500);
+      if (ls) { ls.classList.add('hidden'); setTimeout(() => ls.remove(), 500); }
     }, 300);
 
     renderHadith(hadith);
@@ -91,29 +85,25 @@ async function loadData() {
   }
 }
 
-// ---- Render Hadith ----
+// ---- Render ----
 function renderHadith(hadith) {
   currentId = hadith.number;
 
   document.title = `صحيح البخاري — حديث رقم ${currentId}`;
 
   const metaDesc = document.querySelector('meta[name="description"]');
-  if (metaDesc) metaDesc.content = (hadith.searchTerm || '').slice(0, 160);
+  if (metaDesc) metaDesc.content = (hadith.arab || '').slice(0, 160);
 
-  document.getElementById('breadcrumb-num').textContent = `حديث رقم ${currentId.toLocaleString('ar-EG')}`;
-  document.getElementById('hadith-num-display').textContent = currentId.toLocaleString('ar-EG');
+  document.getElementById('breadcrumb-num').textContent = `حديث رقم ${Number(currentId).toLocaleString('ar-EG')}`;
+  document.getElementById('hadith-num-display').textContent = Number(currentId).toLocaleString('ar-EG');
   document.getElementById('hadith-position').textContent =
-    `${currentId.toLocaleString('ar-EG')} من ${TOTAL_HADITHS.toLocaleString('ar-EG')}`;
+    `${Number(currentId).toLocaleString('ar-EG')} من ${TOTAL_HADITHS.toLocaleString('ar-EG')}`;
 
-  document.getElementById('hadith-text').innerHTML = cleanText(hadith.hadith || '');
+  document.getElementById('hadith-text').innerHTML = cleanText(hadith.arab || '');
 
+  // لا يوجد شرح في الـ API الخارجي
   const descCard = document.getElementById('desc-card');
-  if (hadith.description && hadith.description.trim()) {
-    document.getElementById('desc-text').innerHTML = cleanText(hadith.description);
-    descCard.style.display = 'block';
-  } else {
-    descCard.style.display = 'none';
-  }
+  if (descCard) descCard.style.display = 'none';
 
   const prevId = currentId > 1 ? currentId - 1 : null;
   const nextId = currentId < TOTAL_HADITHS ? currentId + 1 : null;
@@ -131,6 +121,7 @@ function renderHadith(hadith) {
 
 function setNavBtn(btnId, href) {
   const btn = document.getElementById(btnId);
+  if (!btn) return;
   if (href) {
     btn.href = href;
     btn.removeAttribute('disabled');
@@ -146,11 +137,7 @@ function setNavBtn(btnId, href) {
 
 function cleanText(text) {
   if (!text) return '';
-  return text
-    .replace(/\u200F|\u200E/g, '')
-    .replace(/‏\s*‏/g, ' ')
-    .replace(/‏/g, '')
-    .trim();
+  return text.replace(/\u200F|\u200E/g, '').replace(/‏\s*‏/g, ' ').replace(/‏/g, '').trim();
 }
 
 function showError() {
