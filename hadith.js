@@ -42,7 +42,7 @@ document.getElementById('share-btn').addEventListener('click', async () => {
 document.getElementById('main-search').addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     const q = e.target.value.trim();
-    if (q) window.location.href = `index?q=${encodeURIComponent(q)}`;
+    if (q) window.location.href = `index.html?q=${encodeURIComponent(q)}`;
   }
 });
 
@@ -118,15 +118,15 @@ function renderHadith(hadith) {
   const prevId = currentId > 1 ? currentId - 1 : null;
   const nextId = currentId < TOTAL_HADITHS ? currentId + 1 : null;
 
-  setNavBtn('btn-prev', prevId ? `hadith?id=${prevId}` : null);
-  setNavBtn('btn-next', nextId ? `hadith?id=${nextId}` : null);
-  setNavBtn('btn-prev-2', prevId ? `hadith?id=${prevId}` : null);
-  setNavBtn('btn-next-2', nextId ? `hadith?id=${nextId}` : null);
+  setNavBtn('btn-prev', prevId ? `hadith.html?id=${prevId}` : null);
+  setNavBtn('btn-next', nextId ? `hadith.html?id=${nextId}` : null);
+  setNavBtn('btn-prev-2', prevId ? `hadith.html?id=${prevId}` : null);
+  setNavBtn('btn-next-2', nextId ? `hadith.html?id=${nextId}` : null);
 
   document.getElementById('hadith-page-content').style.display = 'block';
   document.getElementById('error-state').style.display = 'none';
 
-  history.replaceState({ id: currentId }, `حديث ${currentId}`, `hadith?id=${currentId}`);
+  history.replaceState({ id: currentId }, `حديث ${currentId}`, `hadith.html?id=${currentId}`);
 }
 
 function setNavBtn(btnId, href) {
@@ -164,10 +164,10 @@ function showError() {
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
-    if (currentId > 1) window.location.href = `hadith?id=${currentId - 1}`;
+    if (currentId > 1) window.location.href = `hadith.html?id=${currentId - 1}`;
   }
   if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
-    if (currentId < TOTAL_HADITHS) window.location.href = `hadith?id=${currentId + 1}`;
+    if (currentId < TOTAL_HADITHS) window.location.href = `hadith.html?id=${currentId + 1}`;
   }
 });
 
