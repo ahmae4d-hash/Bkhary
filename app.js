@@ -1,15 +1,18 @@
 // =============================================
-//  app.js — Main Index Page Logic
+//  app.js — Main Index Page (API Version)
+//  غيّر الرابط التالي برابطك الدائم بعد النشر
 // =============================================
 
+const API_BASE = 'https://c5d637d5-8680-45ac-b682-a9b2c3da8ad6-00-2q47k992tfojx.picard.replit.dev/api/bukhari';
+
 const PER_PAGE = 50;
-let allData = [];
-let filtered = [];
 let currentPage = 1;
 let currentView = localStorage.getItem('view') || 'grid';
 let currentFilter = 'all';
 let searchQuery = '';
 let searchTimeout = null;
+let isLoading = false;
+let totalPages = 1;
 
 // ---- Theme ----
 (function initTheme() {
@@ -26,160 +29,58 @@ document.getElementById('theme-toggle').addEventListener('click', () => {
   document.getElementById('theme-toggle').textContent = next === 'dark' ? '☀️' : '🌙';
 });
 
-// ---- Load Data ----
-async function loadData() {
-  const bar = document.getElementById('loader-bar');
-  const txt = document.getElementById('loader-text');
-  const dataFile = 'bukhari.json';
+// ---- Build API URL ----
+function buildUrl(page, query, filter) {
+  if (query) {
+    return `${API_BASE}/search?q=${encodeURIComponent(query)}&page=${page}&limit=${PER_PAGE}`;
+  }
+  let url = `${API_BASE}?page=${page}&limit=${PER_PAGE}`;
+  if (filter === 'desc') url += '&hasDesc=true';
+  return url;
+}
+
+// ---- Load from API ----
+async function loadPage() {
+  if (isLoading) return;
+  isLoading = true;
+
+  const container = document.getElementById('hadiths-container');
+  container.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted)">
+    <div style="font-size:2rem;margin-bottom:12px">⏳</div>
+    <div>جارٍ التحميل...</div>
+  </div>`;
 
   try {
-    const response = await fetch(dataFile);
-    if (!response.ok) throw new Error('فشل تحميل البيانات');
+    const url = buildUrl(currentPage, searchQuery, currentFilter);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('فشل الاتصال بالخادم');
+    const json = await res.json();
 
-    const total = parseInt(response.headers.get('Content-Length') || '0');
-    const reader = response.body.getReader();
-    let received = 0;
-    const chunks = [];
+    totalPages = json.totalPages || 1;
+    document.getElementById('showing-count').textContent = json.total.toLocaleString('ar-EG');
+    document.getElementById('total-count').textContent = (7008).toLocaleString('ar-EG');
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      received += value.length;
-      if (total > 0) {
-        const pct = Math.min(90, (received / total) * 90);
-        bar.style.width = pct + '%';
-        txt.textContent = `جارٍ التحميل... ${Math.round(pct)}%`;
-      } else {
-        const mb = (received / 1024 / 1024).toFixed(1);
-        txt.textContent = `جارٍ التحميل... ${mb} ميجابايت`;
-        bar.style.width = Math.min(85, received / 600000 * 85) + '%';
-      }
-    }
-
-    txt.textContent = 'جارٍ معالجة البيانات...';
-    bar.style.width = '95%';
-
-    const merged = new Uint8Array(received);
-    let offset = 0;
-    for (const c of chunks) { merged.set(c, offset); offset += c.length; }
-    const text = new TextDecoder('utf-8').decode(merged);
-    allData = JSON.parse(text);
-
-    bar.style.width = '100%';
-    txt.textContent = `تم تحميل ${allData.length.toLocaleString('ar-EG')} حديث ✓`;
-
-    document.getElementById('total-count').textContent = allData.length.toLocaleString('ar-EG');
-
-    setTimeout(() => {
-      const ls = document.getElementById('loading-screen');
-      ls.classList.add('hidden');
-      setTimeout(() => ls.remove(), 600);
-    }, 400);
-
-    initPage();
+    renderCards(json.data);
+    renderPagination(json.totalPages, json.page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
   } catch (err) {
-    txt.textContent = '❌ ' + err.message;
-    bar.style.background = '#e53e3e';
+    container.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="icon">❌</div>
+      <h3>خطأ في الاتصال</h3>
+      <p>${err.message}</p>
+    </div>`;
+    document.getElementById('pagination').innerHTML = '';
+  } finally {
+    isLoading = false;
   }
 }
 
-// ---- Init Page ----
-function initPage() {
-  setView(currentView, true);
-  applyFilters();
-
-  // Restore from URL
-  const params = new URLSearchParams(location.search);
-  if (params.get('q')) {
-    const q = params.get('q');
-    document.getElementById('main-search').value = q;
-    searchQuery = q;
-    applyFilters();
-  }
-  if (params.get('page')) {
-    currentPage = parseInt(params.get('page')) || 1;
-  }
-
-  render();
-}
-
-// ---- Search ----
-document.getElementById('main-search').addEventListener('input', e => {
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => {
-    searchQuery = e.target.value.trim();
-    currentPage = 1;
-    applyFilters();
-    render();
-    updateURL();
-  }, 300);
-});
-
-document.getElementById('main-search').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && filtered.length === 1) {
-    window.location.href = `hadith?id=${filtered[0].number}`;
-  }
-});
-
-// ---- Filters ----
-function setFilter(f) {
-  currentFilter = f;
-  currentPage = 1;
-  document.getElementById('filter-all').classList.toggle('active', f === 'all');
-  document.getElementById('filter-desc').classList.toggle('active', f === 'desc');
-  applyFilters();
-  render();
-}
-
-function applyFilters() {
-  let data = allData;
-
-  if (currentFilter === 'desc') {
-    data = data.filter(h => h.description && h.description.trim());
-  }
-
-  if (searchQuery) {
-    const q = normalizeAr(searchQuery);
-    data = data.filter(h => {
-      const st = normalizeAr(h.searchTerm || '');
-      const num = String(h.number);
-      return st.includes(q) || num.includes(searchQuery);
-    });
-  }
-
-  filtered = data;
-  document.getElementById('showing-count').textContent = filtered.length.toLocaleString('ar-EG');
-}
-
-function normalizeAr(s) {
-  return s
-    .replace(/[\u064B-\u065F\u0670]/g, '')
-    .replace(/أ|إ|آ/g, 'ا')
-    .replace(/ة/g, 'ه')
-    .replace(/ى/g, 'ي')
-    .toLowerCase()
-    .trim();
-}
-
-// ---- View ----
-function setView(v, silent = false) {
-  currentView = v;
-  if (!silent) localStorage.setItem('view', v);
-  const c = document.getElementById('hadiths-container');
-  c.className = v === 'grid' ? 'view-grid' : 'view-list';
-  document.getElementById('view-grid-btn').classList.toggle('active', v === 'grid');
-  document.getElementById('view-list-btn').classList.toggle('active', v === 'list');
-}
-
-// ---- Render ----
-function render() {
+// ---- Render Cards ----
+function renderCards(hadiths) {
   const container = document.getElementById('hadiths-container');
-  const start = (currentPage - 1) * PER_PAGE;
-  const page = filtered.slice(start, start + PER_PAGE);
 
-  if (filtered.length === 0) {
+  if (!hadiths || hadiths.length === 0) {
     container.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
       <div class="icon">🔍</div>
       <h3>لا توجد نتائج</h3>
@@ -190,9 +91,7 @@ function render() {
   }
 
   const q = searchQuery ? normalizeAr(searchQuery) : '';
-  container.innerHTML = page.map(h => createCard(h, q)).join('');
-  renderPagination();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  container.innerHTML = hadiths.map(h => createCard(h, q)).join('');
 }
 
 function createCard(h, q) {
@@ -217,33 +116,82 @@ function createCard(h, q) {
 function highlight(text, q) {
   if (!q) return escapeHtml(text);
   const escaped = escapeHtml(text);
-  const escapedQ = escapeHtml(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return escaped.replace(new RegExp(escapedQ, 'gi'), m => `<mark>${m}</mark>`);
 }
 
 function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ---- Search ----
+document.getElementById('main-search').addEventListener('input', e => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    searchQuery = e.target.value.trim();
+    currentPage = 1;
+    loadPage();
+    updateURL();
+  }, 400);
+});
+
+document.getElementById('main-search').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    clearTimeout(searchTimeout);
+    searchQuery = e.target.value.trim();
+    currentPage = 1;
+    loadPage();
+    updateURL();
+  }
+});
+
+// ---- Filters ----
+function setFilter(f) {
+  currentFilter = f;
+  currentPage = 1;
+  document.getElementById('filter-all').classList.toggle('active', f === 'all');
+  document.getElementById('filter-desc').classList.toggle('active', f === 'desc');
+  loadPage();
+}
+
+function normalizeAr(s) {
+  return s
+    .replace(/[\u064B-\u065F\u0670]/g, '')
+    .replace(/أ|إ|آ/g, 'ا')
+    .replace(/ة/g, 'ه')
+    .replace(/ى/g, 'ي')
+    .toLowerCase()
+    .trim();
+}
+
+// ---- View ----
+function setView(v, silent = false) {
+  currentView = v;
+  if (!silent) localStorage.setItem('view', v);
+  const c = document.getElementById('hadiths-container');
+  c.className = v === 'grid' ? 'view-grid' : 'view-list';
+  document.getElementById('view-grid-btn').classList.toggle('active', v === 'grid');
+  document.getElementById('view-list-btn').classList.toggle('active', v === 'list');
 }
 
 // ---- Pagination ----
-function renderPagination() {
-  const total = Math.ceil(filtered.length / PER_PAGE);
+function renderPagination(total, current) {
   if (total <= 1) { document.getElementById('pagination').innerHTML = ''; return; }
 
-  const pages = getPageRange(currentPage, total);
+  const pages = getPageRange(current, total);
   let html = '';
 
-  html += `<button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>→</button>`;
+  html += `<button class="page-btn" onclick="goPage(${current - 1})" ${current === 1 ? 'disabled' : ''}>→</button>`;
 
   for (const p of pages) {
     if (p === '...') {
       html += `<span style="padding:0 4px;color:var(--text-muted)">…</span>`;
     } else {
-      html += `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goPage(${p})">${p.toLocaleString('ar-EG')}</button>`;
+      html += `<button class="page-btn ${p === current ? 'active' : ''}" onclick="goPage(${p})">${p.toLocaleString('ar-EG')}</button>`;
     }
   }
 
-  html += `<button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === total ? 'disabled' : ''}>←</button>`;
+  html += `<button class="page-btn" onclick="goPage(${current + 1})" ${current === total ? 'disabled' : ''}>←</button>`;
 
   document.getElementById('pagination').innerHTML = html;
 }
@@ -260,10 +208,9 @@ function getPageRange(cur, total) {
 }
 
 function goPage(p) {
-  const total = Math.ceil(filtered.length / PER_PAGE);
-  if (p < 1 || p > total) return;
+  if (p < 1 || p > totalPages) return;
   currentPage = p;
-  render();
+  loadPage();
   updateURL();
 }
 
@@ -284,5 +231,29 @@ window.addEventListener('scroll', () => {
   document.getElementById('top-progress').style.width = pct + '%';
 }, { passive: true });
 
-// ---- Start ----
-loadData();
+// ---- Init ----
+(function init() {
+  setView(currentView, true);
+
+  const params = new URLSearchParams(location.search);
+  if (params.get('q')) {
+    searchQuery = params.get('q');
+    document.getElementById('main-search').value = searchQuery;
+  }
+  if (params.get('page')) {
+    currentPage = parseInt(params.get('page')) || 1;
+  }
+
+  // Hide loading screen
+  const bar = document.getElementById('loader-bar');
+  const txt = document.getElementById('loader-text');
+  bar.style.width = '100%';
+  txt.textContent = 'جاهز ✓';
+  setTimeout(() => {
+    const ls = document.getElementById('loading-screen');
+    ls.classList.add('hidden');
+    setTimeout(() => ls.remove(), 500);
+  }, 300);
+
+  loadPage();
+})();
