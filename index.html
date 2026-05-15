@@ -8,6 +8,18 @@
   <meta property="og:title" content="صحيح البخاري">
   <meta property="og:description" content="مجموعة كاملة من أحاديث الإمام البخاري مع الشرح والتعليق">
   <title>صحيح البخاري</title>
+  <!-- ===== PWA ===== -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#c8a94a">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/Bkhary/sw.js');
+      });
+    }
+  </script>
+  <!-- ===== END PWA ===== -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📿</text></svg>">
   <link rel="stylesheet" href="style.css">
 </head>
